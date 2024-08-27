@@ -88,6 +88,11 @@ class CDSPClient:
                 case _:
                     state = MediaPlayerState.OFF
 
+            if statusData.get("capturerate") is not None:
+                capturerate = statusData["capturerate"]
+            else:
+                capturerate = 0
+
             volume = float(await self.async_get_api(endpoint="getparam/volume"))
             mute = (await self.async_get_api(endpoint="getparam/mute")) == "True"
             source = (json.loads(await self.async_get_api(endpoint="getactiveconfigfile"))["configFileName"])
@@ -98,7 +103,12 @@ class CDSPClient:
                 if config.get("name") is not None:
                     source_list.append(config.get("name"))
 
-            data = CDSPData(state=state, volume=volume, mute=mute, source=source, source_list=source_list)
+            data = CDSPData(state=state,
+                            volume=volume,
+                            mute=mute,
+                            source=source,
+                            source_list=source_list,
+                            capturerate=capturerate)
 
         except Exception as e:
             self._state = None
@@ -110,9 +120,7 @@ class CDSPClient:
         return data
 
     async def async_get_api(self, endpoint: str) -> Any:
-        """Retrieve data from the API."""
         url = f"{self.url}/api/{endpoint}"
-
         res = await self._websession.get(url)
         return await res.text()
 
@@ -120,9 +128,7 @@ class CDSPClient:
     async def async_post_api(self, endpoint: str, data: str) -> Any:
         self._websession = aiohttp.ClientSession(timeout=self.aio_timeout)
 
-        """Retrieve data from the API."""
         url = f"{self.url}/api/{endpoint}"
-
         res = await self._websession.post(url, data=data, json=None)
         ret = await res.text()
 

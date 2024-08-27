@@ -9,3 +9,4 @@ class CDSPData:
     mute: bool
     source: str
     source_list: list[str]
+    capturerate: int

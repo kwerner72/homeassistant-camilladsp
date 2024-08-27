@@ -7,3 +7,4 @@ CONFIG_VOLUME_MIN = "volume_min"
 CONFIG_VOLUME_MAX = "volume_max"
 
 ATTR_VOLUME_DB = "volume_db"
+ATTR_CAPTURE_RATE = "capturerate"

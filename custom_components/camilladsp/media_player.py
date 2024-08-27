@@ -14,7 +14,14 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ATTR_VOLUME_DB, CONFIG_VOLUME_MAX, CONFIG_VOLUME_MIN, DOMAIN, NAME
+from .const import (
+    ATTR_CAPTURE_RATE,
+    ATTR_VOLUME_DB,
+    CONFIG_VOLUME_MAX,
+    CONFIG_VOLUME_MIN,
+    DOMAIN,
+    NAME,
+)
 from .coordinator import CDSPDataUpdateCoordinator
 from .entity import CDSPEntity
 from .model import CDSPData
@@ -81,7 +88,6 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
 
         self._volume_min = volume_min
         self._volume_max = volume_max
-        LOGGER.info(f"Volume: {volume_min}-{volume_max}")
 
         self._extra_state_attributes = {}
 
@@ -98,10 +104,11 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         if self._data is not None:
             self._attr_state = self._data.state
             self._attr_volume_level = self._convertFromDb(self._data.volume)
-            self._extra_state_attributes[ATTR_VOLUME_DB] = self._data.volume
             self._attr_is_volume_muted = self._data.mute
             self._attr_source = self._data.source
             self._attr_source_list = self._data.source_list
+            self._extra_state_attributes[ATTR_VOLUME_DB] = self._data.volume
+            self._extra_state_attributes[ATTR_CAPTURE_RATE] = self._data.capturerate
 
     @callback
     def _async_update_attrs_write_ha_state(self) -> None:
