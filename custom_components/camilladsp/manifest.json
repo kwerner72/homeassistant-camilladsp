@@ -1,5 +1,5 @@
 {
-  "domain": "camilla_dsp",
+  "domain": "camilladsp",
   "name": "CamillaDSP",
   "codeowners": ["@kwerner72"],
   "config_flow": true,

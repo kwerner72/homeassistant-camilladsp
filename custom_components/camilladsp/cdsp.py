@@ -9,6 +9,7 @@ import aiohttp
 
 from homeassistant.components.media_player import MediaPlayerState
 
+from .const import DOMAIN
 from .model import CDSPData
 
 LOGGER = logging.getLogger(__name__)
@@ -29,13 +30,12 @@ class CDSPClient:
         md5 = hashlib.md5()
         md5.update(url.encode('utf-8'))
         self.cdsp_id = md5.hexdigest()[0:16]
-        self.name = "camilla_dsp"
+        self.name = DOMAIN
 
     async def async_set_volume_float(self, volume: float):
         await self.async_set_volume((volume * 50) - 50)
 
     async def async_set_volume(self, volume: float):
-
         await self.async_post_api(endpoint="setparam/volume", data=str(volume))
         self._volume = volume
 
@@ -70,6 +70,8 @@ class CDSPClient:
         source: str = None
         source_list: list[str] = None
 
+        data:CDSPData = None
+
         try:
             statusData = json.loads(await self.async_get_api(endpoint="status"))
             match statusData["cdsp_status"]:
@@ -89,7 +91,14 @@ class CDSPClient:
             volume = float(await self.async_get_api(endpoint="getparam/volume"))
             mute = (await self.async_get_api(endpoint="getparam/mute")) == "True"
             source = (json.loads(await self.async_get_api(endpoint="getactiveconfigfile"))["configFileName"])
-            source_list = (json.loads(await self.async_get_api(endpoint="storedconfigs")))[0]
+
+            storedconfigs = json.loads(await self.async_get_api(endpoint="storedconfigs"))
+            source_list = []
+            for config in storedconfigs:
+                if config.get("name") is not None:
+                    source_list.append(config.get("name"))
+
+            data = CDSPData(state=state, volume=volume, mute=mute, source=source, source_list=source_list)
 
         except Exception as e:
             self._state = None
@@ -98,7 +107,7 @@ class CDSPClient:
 
         await self._websession.close()
 
-        return CDSPData(state=state, volume=volume, mute=mute, source=source, source_list=source_list)
+        return data
 
     async def async_get_api(self, endpoint: str) -> Any:
         """Retrieve data from the API."""

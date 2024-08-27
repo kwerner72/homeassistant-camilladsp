@@ -9,11 +9,17 @@ from homeassistant import config_entries, exceptions
 from homeassistant.core import HomeAssistant
 
 from .cdsp import CDSPClient
-from .const import CONFIG_URL, DOMAIN
+from .const import CONFIG_URL, CONFIG_VOLUME_MAX, CONFIG_VOLUME_MIN, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-DATA_SCHEMA = vol.Schema({(CONFIG_URL): str})
+DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONFIG_URL): str,
+        vol.Optional(CONFIG_VOLUME_MIN): vol.Coerce(float),
+        vol.Optional(CONFIG_VOLUME_MAX): vol.Coerce(float)
+    }
+)
 
 
 async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
@@ -56,4 +62,7 @@ class CannotConnect(exceptions.HomeAssistantError):
 
 
 class InvalidHost(exceptions.HomeAssistantError):
+    """Error to indicate there is an invalid hostname."""
+
+class InvalidValue(exceptions.HomeAssistantError):
     """Error to indicate there is an invalid hostname."""
