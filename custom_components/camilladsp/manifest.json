@@ -1,0 +1,11 @@
+{
+  "domain": "camilla_dsp",
+  "name": "CamillaDSP",
+  "codeowners": ["@kwerner72"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/kwerner72/homeassistant-camilladsp",
+  "issue_tracker": "https://github.com/kwerner72/homeassistant-camilladsp/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
