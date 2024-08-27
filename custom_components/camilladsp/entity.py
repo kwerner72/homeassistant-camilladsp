@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
-
-from homeassistant.const import ATTR_NAME, ATTR_VIA_DEVICE
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, NAME, VERSION
-from .coordinator import CDSPData, CDSPDataUpdateCoordinator
+from .coordinator import CDSPDataUpdateCoordinator
+from .model import CDSPData
 
 
 class CDSPEntity(CoordinatorEntity[CDSPData]):  # type:ignore [misc]

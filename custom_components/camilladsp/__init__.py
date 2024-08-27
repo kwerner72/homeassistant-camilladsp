@@ -8,9 +8,9 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
-from .cdsp import ApiError, CDSPClient
+from .cdsp import CDSPClient
 from .const import CONFIG_URL, DOMAIN
-from .coordinator import CDSPDataUpdateCoordinator
+from .coordinator import ApiError, CDSPDataUpdateCoordinator
 
 SCAN_INTERVAL = timedelta(seconds=10)
 
