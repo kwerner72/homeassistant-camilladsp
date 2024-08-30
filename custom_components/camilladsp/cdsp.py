@@ -32,9 +32,6 @@ class CDSPClient:
         self.cdsp_id = md5.hexdigest()[0:16]
         self.name = DOMAIN
 
-    async def async_set_volume_float(self, volume: float):
-        await self.async_set_volume((volume * 50) - 50)
-
     async def async_set_volume(self, volume: float):
         await self.async_post_api(endpoint="setparam/volume", data=str(volume))
         self._volume = volume

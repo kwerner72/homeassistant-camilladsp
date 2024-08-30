@@ -36,8 +36,8 @@ ENTITY_DESC = MediaPlayerEntityDescription(
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
-    volume_min = config_entry.data.get(CONFIG_VOLUME_MIN, -51)
-    volume_max = config_entry.data.get(CONFIG_VOLUME_MAX, 0)
+    volume_min = config_entry.options.get(CONFIG_VOLUME_MIN)
+    volume_max = config_entry.options.get(CONFIG_VOLUME_MAX)
 
     entities = []
     entities.append(CDSPMediaPlayer(config_entry.entry_id, coordinator, ENTITY_DESC, volume_min, volume_max))
@@ -120,7 +120,7 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         return self._extra_state_attributes
 
     async def async_set_volume_level(self, volume: float) -> None:
-        await self.coordinator.cdsp.async_set_volume_float(volume)
+        await self.coordinator.cdsp.async_set_volume(self._convertToDb(volume))
         self._data.volume = self._convertToDb(volume)
         self._async_update_attrs_write_ha_state()
 
@@ -135,7 +135,7 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         self._async_update_attrs_write_ha_state()
 
     def _convertToDb(self, volume: float) -> float:
-        return (volume * 50) - 50
+        return self._volume_min + (volume * abs(self._volume_max - self._volume_min))
 
     def _convertFromDb(self, volume: float) -> float:
-        return (volume + 50) / 50
+        return abs(self._volume_min - volume) / abs(self._volume_max - self._volume_min)
