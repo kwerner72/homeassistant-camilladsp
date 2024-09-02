@@ -20,6 +20,7 @@ from .const import (
     ATTR_VOLUME_DB,
     CONFIG_VOLUME_MAX,
     CONFIG_VOLUME_MIN,
+    CONFIG_VOLUME_STEP,
     DOMAIN,
     NAME,
 )
@@ -39,9 +40,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
 
     volume_min = config_entry.options.get(CONFIG_VOLUME_MIN)
     volume_max = config_entry.options.get(CONFIG_VOLUME_MAX)
+    volume_step = config_entry.options.get(CONFIG_VOLUME_STEP)
 
     entities = []
-    entities.append(CDSPMediaPlayer(config_entry.entry_id, coordinator, ENTITY_DESC, volume_min, volume_max))
+    entities.append(CDSPMediaPlayer(config_entry.entry_id, coordinator, ENTITY_DESC, volume_min, volume_max, volume_step))
 
     async_add_entities(entities, update_before_add=False)
 
@@ -68,7 +70,8 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         coordinator: CDSPDataUpdateCoordinator,
         description: MediaPlayerEntityDescription,
         volume_min: float,
-        volume_max: float
+        volume_max: float,
+        volume_step
     ) -> None:
         super().__init__(coordinator)
 
@@ -85,10 +88,9 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
             model="",
         )
 
-        self.volume_step = 0.02
-
         self._volume_min = volume_min
         self._volume_max = volume_max
+        self._attr_volume_step = self._volumeStepFromDb(volume_step)
 
         self._extra_state_attributes = {}
 
@@ -129,8 +131,9 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         return self._extra_state_attributes
 
     async def async_set_volume_level(self, volume: float) -> None:
-        await self.coordinator.cdsp.async_set_volume(self._convertToDb(volume))
-        self._data.volume = self._convertToDb(volume)
+        volumeDb = self._convertToDb(volume)
+        await self.coordinator.cdsp.async_set_volume(volumeDb)
+        self._data.volume = volumeDb
         self._async_update_attrs_write_ha_state()
 
     async def async_mute_volume(self, mute: bool) -> None:
@@ -144,14 +147,17 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         self._async_update_attrs_write_ha_state()
 
     def _convertToDb(self, volume: float) -> float:
-        if self._isValidVolume():
-            return self._volume_min + (volume * abs(self._volume_max - self._volume_min))
-        return 0
+        if isinstance(volume, (int,float)):
+            return round(self._volume_min + (volume * abs(self._volume_max - self._volume_min)), 2)
+        return self._volume_min
 
     def _convertFromDb(self, volume: float) -> float:
-        if self._isValidVolume():
-            return abs(self._volume_min - volume) / abs(self._volume_max - self._volume_min)
+        if isinstance(volume, (int,float)):
+            return round(abs(self._volume_min - volume) / abs(self._volume_max - self._volume_min), 2)
         return 0
 
-    def _isValidVolume(self) -> bool:
-        return isinstance(self._volume_min, float) and isinstance(self._volume_max, float)
+    def _volumeStepFromDb(self, volume_step: float) -> float:
+        volRange = abs(self._volume_max - self._volume_min)
+        if volRange < volume_step:
+            volume_step = 1
+        return round(1 / (volRange / volume_step), 2)

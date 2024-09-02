@@ -5,7 +5,8 @@
         "data": {
           "url": "URL",
           "volume_min": "Volume min (dB)",
-          "volume_max": "Volume max (dB)"
+          "volume_max": "Volume max (dB)",
+          "volume_step": "Volume step (dB)"
         }
       }
     },

@@ -106,8 +106,6 @@ class CDSPClient:
 
         await self._websession.close()
 
-        LOGGER.info("Updated CDSP")
-
         return CDSPData(state=state,
                         volume=volume,
                         mute=mute,

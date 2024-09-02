@@ -10,7 +10,14 @@ from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant, callback
 
 from .cdsp import CDSPClient
-from .const import CONFIG_URL, CONFIG_VOLUME_MAX, CONFIG_VOLUME_MIN, DOMAIN, NAME
+from .const import (
+    CONFIG_URL,
+    CONFIG_VOLUME_MAX,
+    CONFIG_VOLUME_MIN,
+    CONFIG_VOLUME_STEP,
+    DOMAIN,
+    NAME,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,7 +31,8 @@ def get_options_schema(init_values: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
     {
         vol.Optional(CONFIG_VOLUME_MIN, default=init_values[CONFIG_VOLUME_MIN]): vol.Coerce(float),
-        vol.Optional(CONFIG_VOLUME_MAX, default=init_values[CONFIG_VOLUME_MAX]): vol.Coerce(float)
+        vol.Optional(CONFIG_VOLUME_MAX, default=init_values[CONFIG_VOLUME_MAX]): vol.Coerce(float),
+        vol.Optional(CONFIG_VOLUME_STEP, default=init_values[CONFIG_VOLUME_STEP]): vol.Coerce(float)
     }
 )
 
@@ -39,7 +47,8 @@ async def validate_options_input(hass: HomeAssistant, data: dict) -> dict[str, A
 
     if data[CONFIG_VOLUME_MAX] > 0 or data[CONFIG_VOLUME_MIN] > data[CONFIG_VOLUME_MAX]:
         raise InvalidValue
-
+    if data[CONFIG_VOLUME_STEP] < 0:
+        raise InvalidValue
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -61,7 +70,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                            data=user_input,
                                            options={
                                                CONFIG_VOLUME_MIN: -50,
-                                               CONFIG_VOLUME_MAX: 0
+                                               CONFIG_VOLUME_MAX: 0,
+                                               CONFIG_VOLUME_STEP: 1
                                            })
         except CannotConnect:
             errors["base"] = "cannot_connect"
