@@ -7,6 +7,7 @@ from homeassistant.components.media_player import (
     MediaPlayerEntity,
     MediaPlayerEntityDescription,
     MediaPlayerEntityFeature,
+    MediaPlayerState,
     MediaType,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -102,6 +103,7 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
 
     def _set_attrs_from_data(self):
         if self._data is not None:
+            self._attr_available = self._data.state != MediaPlayerState.OFF
             self._attr_state = self._data.state
             self._attr_volume_level = self._convertFromDb(self._data.volume)
             self._attr_is_volume_muted = self._data.mute
@@ -109,11 +111,18 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
             self._attr_source_list = self._data.source_list
             self._extra_state_attributes[ATTR_VOLUME_DB] = self._data.volume
             self._extra_state_attributes[ATTR_CAPTURE_RATE] = self._data.capturerate
+        else:
+            self._attr_available = False
+
 
     @callback
     def _async_update_attrs_write_ha_state(self) -> None:
         self._set_attrs_from_data()
         self.async_write_ha_state()
+
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._attr_available
 
     @property
     def extra_state_attributes(self):
@@ -135,7 +144,14 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         self._async_update_attrs_write_ha_state()
 
     def _convertToDb(self, volume: float) -> float:
-        return self._volume_min + (volume * abs(self._volume_max - self._volume_min))
+        if self._isValidVolume():
+            return self._volume_min + (volume * abs(self._volume_max - self._volume_min))
+        return 0
 
     def _convertFromDb(self, volume: float) -> float:
-        return abs(self._volume_min - volume) / abs(self._volume_max - self._volume_min)
+        if self._isValidVolume():
+            return abs(self._volume_min - volume) / abs(self._volume_max - self._volume_min)
+        return 0
+
+    def _isValidVolume(self) -> bool:
+        return isinstance(self._volume_min, float) and isinstance(self._volume_max, float)

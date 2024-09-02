@@ -64,10 +64,9 @@ class CDSPClient:
         state: MediaPlayerState = MediaPlayerState.OFF
         volume: float = 0
         mute: bool = False
-        source: str = None
-        source_list: list[str] = None
-
-        data:CDSPData = None
+        source: str = ""
+        source_list: list[str] = []
+        capturerate: int = 0
 
         try:
             statusData = json.loads(await self.async_get_api(endpoint="status"))
@@ -85,36 +84,36 @@ class CDSPClient:
                 case _:
                     state = MediaPlayerState.OFF
 
-            if statusData.get("capturerate") is not None:
-                capturerate = statusData["capturerate"]
-            else:
-                capturerate = 0
+            if state != MediaPlayerState.OFF:
+                if statusData.get("capturerate") is not None:
+                    capturerate = statusData["capturerate"]
+                else:
+                    capturerate = 0
 
-            volume = float(await self.async_get_api(endpoint="getparam/volume"))
-            mute = (await self.async_get_api(endpoint="getparam/mute")) == "True"
-            source = (json.loads(await self.async_get_api(endpoint="getactiveconfigfile"))["configFileName"])
+                volume = float(await self.async_get_api(endpoint="getparam/volume"))
+                mute = (await self.async_get_api(endpoint="getparam/mute")) == "True"
+                source = (json.loads(await self.async_get_api(endpoint="getactiveconfigfile"))["configFileName"])
 
-            storedconfigs = json.loads(await self.async_get_api(endpoint="storedconfigs"))
-            source_list = []
-            for config in storedconfigs:
-                if config.get("name") is not None:
-                    source_list.append(config.get("name"))
-
-            data = CDSPData(state=state,
-                            volume=volume,
-                            mute=mute,
-                            source=source,
-                            source_list=source_list,
-                            capturerate=capturerate)
+                storedconfigs = json.loads(await self.async_get_api(endpoint="storedconfigs"))
+                source_list = []
+                for config in storedconfigs:
+                    if config.get("name") is not None:
+                        source_list.append(config.get("name"))
 
         except Exception as e:
-            self._state = None
             log = f"CamillaDSP error: api call failed: {e}"
-            LOGGER.error(log)
+            LOGGER.debug(log)
 
         await self._websession.close()
 
-        return data
+        LOGGER.info("Updated CDSP")
+
+        return CDSPData(state=state,
+                        volume=volume,
+                        mute=mute,
+                        source=source,
+                        source_list=source_list,
+                        capturerate=capturerate)
 
     async def async_get_api(self, endpoint: str) -> Any:
         url = f"{self.url}/api/{endpoint}"
