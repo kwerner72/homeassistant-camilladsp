@@ -30,9 +30,15 @@ DATA_SCHEMA = vol.Schema(
 def get_options_schema(init_values: dict[str, Any]) -> vol.Schema:
     return vol.Schema(
     {
-        vol.Optional(CONFIG_VOLUME_MIN, default=init_values[CONFIG_VOLUME_MIN]): vol.Coerce(float),
-        vol.Optional(CONFIG_VOLUME_MAX, default=init_values[CONFIG_VOLUME_MAX]): vol.Coerce(float),
-        vol.Optional(CONFIG_VOLUME_STEP, default=init_values[CONFIG_VOLUME_STEP]): vol.Coerce(float)
+        vol.Optional(CONFIG_VOLUME_MIN,
+                     default=init_values[CONFIG_VOLUME_MIN]): vol.All(vol.Coerce(float),
+                                                                      vol.Range(min=-100, max=0)),
+        vol.Optional(CONFIG_VOLUME_MAX,
+                     default=init_values[CONFIG_VOLUME_MAX]): vol.All(vol.Coerce(float),
+                                                                      vol.Range(min=-100, max=0)),
+        vol.Optional(CONFIG_VOLUME_STEP,
+                     default=init_values[CONFIG_VOLUME_STEP]): vol.All(vol.Coerce(float),
+                                                                       vol.Range(min=0, max=100))
     }
 )
 

@@ -1,18 +1,30 @@
 {
-    "config": {
-      "step": {
-        "user": {
-          "data": {
-            "url": "URL",
-            "volume_min": "Volume min (dB)",
-            "volume_max": "Volume max (dB)",
-            "volume_step": "Volume step (dB)"
-          }
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "url": "URL"
         }
-      },
-      "error": {
-        "cannot_connect": "Unable to connect to CamillaDSP",
-        "unknown": "Unknown error occurred"
       }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to CamillaDSP",
+      "unknown": "Unknown error occurred"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "volume_min": "Volume min (dB)",
+          "volume_max": "Volume max (dB)",
+          "volume_step": "Volume step (dB)"
+        }
+      }
+    },
+    "error": {
+      "invalid_value": "Invalid value",
+      "unknown": "Unknown error occurred"
     }
   }
+}

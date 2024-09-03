@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+import voluptuous as vol
+
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
@@ -12,6 +14,7 @@ from homeassistant.components.media_player import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -23,6 +26,7 @@ from .const import (
     CONFIG_VOLUME_STEP,
     DOMAIN,
     NAME,
+    SERVICE_VOLUME_DB_SET,
 )
 from .coordinator import CDSPDataUpdateCoordinator
 from .entity import CDSPEntity
@@ -35,7 +39,9 @@ ENTITY_DESC = MediaPlayerEntityDescription(
     translation_key="mediaplayer",
 )
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(hass: HomeAssistant,
+                            config_entry: ConfigEntry,
+                            async_add_entities: AddEntitiesCallback) -> None:
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
     volume_min = config_entry.options.get(CONFIG_VOLUME_MIN)
@@ -46,6 +52,15 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     entities.append(CDSPMediaPlayer(config_entry.entry_id, coordinator, ENTITY_DESC, volume_min, volume_max, volume_step))
 
     async_add_entities(entities, update_before_add=False)
+
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service(
+        SERVICE_VOLUME_DB_SET,
+        {
+            vol.Required(ATTR_VOLUME_DB): vol.Coerce(float),
+        },
+        "async_set_volume_level_db",
+    )
 
 
 class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
@@ -136,6 +151,11 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         self._data.volume = volumeDb
         self._async_update_attrs_write_ha_state()
 
+    async def async_set_volume_level_db(self, volume_db: float) -> None:
+        await self.coordinator.cdsp.async_set_volume(volume_db)
+        self._data.volume = volume_db
+        self._async_update_attrs_write_ha_state()
+
     async def async_mute_volume(self, mute: bool) -> None:
         await self.coordinator.cdsp.async_set_muted(mute)
         self._data.mute = mute
@@ -157,7 +177,9 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
         return 0
 
     def _volumeStepFromDb(self, volume_step: float) -> float:
-        volRange = abs(self._volume_max - self._volume_min)
-        if volRange < volume_step:
-            volume_step = 1
-        return round(1 / (volRange / volume_step), 2)
+        if volume_step > 0:
+            volRange = abs(self._volume_max - self._volume_min)
+            if volRange < volume_step:
+                volume_step = 1
+            return round(1 / (volRange / volume_step), 2)
+        return 0

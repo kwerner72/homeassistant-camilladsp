@@ -9,3 +9,4 @@ CONFIG_VOLUME_STEP = "volume_step"
 
 ATTR_VOLUME_DB = "volume_db"
 ATTR_CAPTURE_RATE = "capturerate"
+SERVICE_VOLUME_DB_SET = "volume_db_set"

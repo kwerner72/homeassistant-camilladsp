@@ -1,0 +1,13 @@
+volume_db_set:
+  target:
+    entity:
+      domain: media_player
+      integration: camilladsp
+  fields:
+    volume_db:
+      required: true
+      example: "-20"
+      selector:
+        number:
+          max: 0
+          min: -100
