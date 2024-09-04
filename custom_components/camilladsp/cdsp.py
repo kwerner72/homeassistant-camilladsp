@@ -5,9 +5,9 @@ import json
 import logging
 from typing import Any
 
-import aiohttp
-
 from homeassistant.components.media_player import MediaPlayerState
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
 from .model import CDSPData
@@ -18,19 +18,20 @@ LOGGER = logging.getLogger(__name__)
 class CDSPClient:
     """Set up CamillaDSP."""
 
-    def __init__(self, url: str, timeout: int = 60) -> None:
+    def __init__(self, hass: HomeAssistant, url: str) -> None:
         """Initialize CamillaDSP module."""
+        self.hass = hass
         self.url = url
         self.status: dict = {}
-        self._timeout: int = timeout
-        self._websession = None
-        self.aio_timeout = aiohttp.ClientTimeout(total=self._timeout)
-
 
         md5 = hashlib.md5()
         md5.update(url.encode('utf-8'))
         self.cdsp_id = md5.hexdigest()[0:16]
         self.name = DOMAIN
+
+        self._volume: float = 0
+        self._mute: bool = False
+        self._source: str = ""
 
     async def async_set_volume(self, volume: float):
         await self.async_post_api(endpoint="setparam/volume", data=str(volume))
@@ -59,8 +60,6 @@ class CDSPClient:
 
     async def update(self) -> CDSPData:
         """Update CamillaDSP data through API."""
-        self._websession = aiohttp.ClientSession(timeout=self.aio_timeout)
-
         state: MediaPlayerState = MediaPlayerState.OFF
         volume: float = 0
         mute: bool = False
@@ -81,8 +80,6 @@ class CDSPClient:
                     state = MediaPlayerState.IDLE
                 case 'STARTING':
                     state = MediaPlayerState.ON
-                case _:
-                    state = MediaPlayerState.OFF
 
             if state != MediaPlayerState.OFF:
                 if statusData.get("capturerate") is not None:
@@ -104,7 +101,7 @@ class CDSPClient:
             log = f"CamillaDSP error: api call failed: {e}"
             LOGGER.debug(log)
 
-        await self._websession.close()
+        #await self._websession.close()
 
         return CDSPData(state=state,
                         volume=volume,
@@ -115,17 +112,15 @@ class CDSPClient:
 
     async def async_get_api(self, endpoint: str) -> Any:
         url = f"{self.url}/api/{endpoint}"
-        res = await self._websession.get(url)
+
+        session = async_get_clientsession(self.hass)
+        res = await session.get(url)
         return await res.text()
 
 
     async def async_post_api(self, endpoint: str, data: str) -> Any:
-        self._websession = aiohttp.ClientSession(timeout=self.aio_timeout)
-
         url = f"{self.url}/api/{endpoint}"
-        res = await self._websession.post(url, data=data, json=None)
-        ret = await res.text()
 
-        await self._websession.close()
-
-        return ret
+        session = async_get_clientsession(self.hass)
+        res = await session.post(url, data=data, json=None)
+        return await res.text()

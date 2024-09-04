@@ -29,7 +29,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     url = entry.data[CONFIG_URL]
 
     # Initialize connection to camilladsp
-    cdsp = CDSPClient(url)
+    cdsp = CDSPClient(hass, url)
     try:
         await cdsp.update()
     except ApiError as ex:

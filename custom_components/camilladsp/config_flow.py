@@ -45,7 +45,7 @@ def get_options_schema(init_values: dict[str, Any]) -> vol.Schema:
 async def validate_data_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
 
     url = data[CONFIG_URL]
-    cdsp = CDSPClient(url)
+    cdsp = CDSPClient(hass, url)
     if not await cdsp.update():
         raise CannotConnect
 
