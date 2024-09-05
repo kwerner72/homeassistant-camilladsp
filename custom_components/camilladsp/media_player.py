@@ -92,8 +92,8 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
 
         self.entity_description = description
 
-        self.has_entity_name = False
-        self.name = NAME
+        self.has_entity_name = True
+        self._attr_name = None
 
         self._attr_unique_id = f"{unique_id}"
         self._attr_device_info = DeviceInfo(
