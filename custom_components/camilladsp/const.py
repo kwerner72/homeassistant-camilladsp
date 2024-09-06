@@ -1,6 +1,6 @@
 DOMAIN = "camilladsp"
 NAME = "CamillaDSP"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 
 CONFIG_URL = "url"
 CONFIG_VOLUME_MIN = "volume_min"
