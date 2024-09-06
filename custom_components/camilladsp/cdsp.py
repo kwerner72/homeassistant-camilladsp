@@ -44,8 +44,8 @@ class CDSPClient:
     async def async_select_source(self, source: str):
         data = f"{{\"name\":\"{source!s}\"}}"
         await self.async_post_api(endpoint="setactiveconfigfile", data=data)
-        configData = json.loads(await self.async_get_api(endpoint="getactiveconfigfile"))
-        if configData["configFileName"] == source:
+        configData = await self.async_get_api(endpoint="getactiveconfigfile")
+        if json.loads(configData)["configFileName"] == source:
             await self.async_post_api(endpoint="setconfig", data=configData)
             self._source = source
         else:
