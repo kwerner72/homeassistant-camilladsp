@@ -11,3 +11,35 @@ volume_db_set:
         number:
           max: 0
           min: -100
+    fader:
+      required: false
+      example: "Main"
+      selector:
+        select:
+          options:
+            - Main
+            - Aux1
+            - Aux2
+            - Aux3
+            - Aux4
+fader_mute:
+  target:
+    entity:
+      domain: media_player
+      integration: camilladsp
+  fields:
+    is_fader_muted:
+      required: true
+      example: "true"
+      selector:
+        boolean:
+    fader:
+      required: true
+      example: "Aux1"
+      selector:
+        select:
+          options:
+            - Aux1
+            - Aux2
+            - Aux3
+            - Aux4            

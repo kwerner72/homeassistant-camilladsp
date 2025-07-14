@@ -21,12 +21,23 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import (
     ATTR_CAPTURE_RATE,
     ATTR_VOLUME_DB,
+    ATTR_VOLUME_AUX1_DB,
+    ATTR_VOLUME_AUX2_DB,
+    ATTR_VOLUME_AUX3_DB,
+    ATTR_VOLUME_AUX4_DB,
+    ATTR_MUTE,
+    ATTR_MUTE_AUX1,
+    ATTR_MUTE_AUX2,
+    ATTR_MUTE_AUX3,
+    ATTR_MUTE_AUX4,
+    ATTR_FADER,
     CONFIG_VOLUME_MAX,
     CONFIG_VOLUME_MIN,
     CONFIG_VOLUME_STEP,
     DOMAIN,
     NAME,
     SERVICE_VOLUME_DB_SET,
+    SERVICE_FADER_MUTE,
 )
 from .coordinator import CDSPDataUpdateCoordinator
 from .entity import CDSPEntity
@@ -58,8 +69,17 @@ async def async_setup_entry(hass: HomeAssistant,
         SERVICE_VOLUME_DB_SET,
         {
             vol.Required(ATTR_VOLUME_DB): vol.Coerce(float),
+            vol.Required(ATTR_FADER): vol.In(["Main", "Aux1", "Aux2", "Aux3", "Aux4"]),
         },
         "async_set_volume_level_db",
+    )
+    platform.async_register_entity_service(
+        SERVICE_FADER_MUTE,
+        {
+            vol.Required(ATTR_MUTE): vol.Coerce(bool),
+            vol.Required(ATTR_FADER): vol.In(["Aux1", "Aux2", "Aux3", "Aux4"]),
+        },
+        "async_mute_fader",
     )
 
 
@@ -127,6 +147,14 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
             self._attr_source = self._data.source
             self._attr_source_list = self._data.source_list
             self._extra_state_attributes[ATTR_VOLUME_DB] = self._data.volume
+            self._extra_state_attributes[ATTR_VOLUME_AUX1_DB] = self._data.volume_fader["Aux1"]
+            self._extra_state_attributes[ATTR_VOLUME_AUX2_DB] = self._data.volume_fader["Aux2"]
+            self._extra_state_attributes[ATTR_VOLUME_AUX3_DB] = self._data.volume_fader["Aux3"]
+            self._extra_state_attributes[ATTR_VOLUME_AUX4_DB] = self._data.volume_fader["Aux4"]
+            self._extra_state_attributes[ATTR_MUTE_AUX1] = self._data.is_fader_muted["Aux1"]
+            self._extra_state_attributes[ATTR_MUTE_AUX2] = self._data.is_fader_muted["Aux2"]
+            self._extra_state_attributes[ATTR_MUTE_AUX3] = self._data.is_fader_muted["Aux3"]
+            self._extra_state_attributes[ATTR_MUTE_AUX4] = self._data.is_fader_muted["Aux4"]
             self._extra_state_attributes[ATTR_CAPTURE_RATE] = self._data.capturerate
         else:
             self._attr_available = False
@@ -147,18 +175,23 @@ class CDSPMediaPlayer(CDSPEntity, MediaPlayerEntity):  # type: ignore[misc]
 
     async def async_set_volume_level(self, volume: float) -> None:
         volumeDb = self._convertToDb(volume)
-        await self.coordinator.cdsp.async_set_volume(volumeDb)
+        self.coordinator.cdsp.set_volume(volumeDb)
         self._data.volume = volumeDb
         self._async_update_attrs_write_ha_state()
 
-    async def async_set_volume_level_db(self, volume_db: float) -> None:
-        await self.coordinator.cdsp.async_set_volume(volume_db)
+    async def async_set_volume_level_db(self, volume_db: float, fader: str) -> None:
+        self.coordinator.cdsp.set_volume_fader(fader, volume_db)
         self._data.volume = volume_db
         self._async_update_attrs_write_ha_state()
 
     async def async_mute_volume(self, mute: bool) -> None:
-        await self.coordinator.cdsp.async_set_muted(mute)
+        self.coordinator.cdsp.set_fader_muted("Main", mute)
         self._data.mute = mute
+        self._async_update_attrs_write_ha_state()
+
+    async def async_mute_fader(self, is_fader_muted: bool, fader: str) -> None:
+        self.coordinator.cdsp.set_fader_muted(fader, is_fader_muted)
+        self._data.is_fader_muted[fader] = is_fader_muted
         self._async_update_attrs_write_ha_state()
 
     async def async_select_source(self, source: str) -> None:

@@ -9,6 +9,9 @@ from homeassistant.components.media_player import MediaPlayerState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from camilladsp import CamillaClient
+from urllib.parse import urlparse
+
 from .const import DOMAIN
 from .model import CDSPData
 
@@ -33,13 +36,44 @@ class CDSPClient:
         self._mute: bool = False
         self._source: str = ""
 
-    async def async_set_volume(self, volume: float):
-        await self.async_post_api(endpoint="setparam/volume", data=str(volume))
+        parse_result = urlparse(self.url)
+        host = parse_result.hostname
+        port = 1234
+        self.cdspClient = CamillaClient(host, port)
+
+    def set_volume_fader(self, fader: str, volume: float) -> None:
+        if not self.cdspClient.is_connected():
+            self.cdspClient.connect()
+
+        if fader == "Aux1":
+            self.cdspClient.volume.set_volume(1, volume)
+        elif fader == "Aux2":
+            self.cdspClient.volume.set_volume(2, volume)
+        elif fader == "Aux3":
+            self.cdspClient.volume.set_volume(3, volume)
+        elif fader == "Aux4":
+            self.cdspClient.volume.set_volume(4, volume)
+
+    def set_volume(self, volume: float):
+        if not self.cdspClient.is_connected():
+            self.cdspClient.connect()
+        self.cdspClient.volume.set_main_volume(volume)
         self._volume = volume
 
-    async def async_set_muted(self, muted: bool):
-        await self.async_post_api(endpoint="setparam/mute", data=str(muted))
-        self._mute = muted
+    def set_fader_muted(self, fader: str, muted: bool) -> None:
+        if not self.cdspClient.is_connected():
+            self.cdspClient.connect()
+
+        if fader == "Aux1":
+            self.cdspClient.volume.set_mute(1, muted)
+        elif fader == "Aux2":
+            self.cdspClient.volume.set_mute(2, muted)
+        elif fader == "Aux3":
+            self.cdspClient.volume.set_mute(3, muted)
+        elif fader == "Aux4":
+            self.cdspClient.volume.set_mute(4, muted)
+        else:
+            self.cdspClient.volume.set_main_mute(muted)
 
     async def async_select_source(self, source: str):
         data = f"{{\"name\":\"{source!s}\"}}"
@@ -67,7 +101,19 @@ class CDSPClient:
         """Update CamillaDSP data through API."""
         state: MediaPlayerState = MediaPlayerState.OFF
         volume: float = 0
+        volume_fader: dict[str, float] = {
+            "Aux1": 0,
+            "Aux2": 0,
+            "Aux3": 0,
+            "Aux4": 0,
+        }
         mute: bool = False
+        is_fader_muted: dict[str, bool] = {
+            "Aux1": False,
+            "Aux2": False,
+            "Aux3": False,
+            "Aux4": False,
+        }
         source: str = ""
         source_list: list[str] = []
         capturerate: int = 0
@@ -87,13 +133,25 @@ class CDSPClient:
                     state = MediaPlayerState.ON
 
             if state != MediaPlayerState.OFF:
+                if not self.cdspClient.is_connected():
+                    self.cdspClient.connect()
+
                 if statusData.get("capturerate") is not None:
                     capturerate = statusData["capturerate"]
                 else:
                     capturerate = 0
 
-                volume = float(await self.async_get_api(endpoint="getparam/volume"))
-                mute = (await self.async_get_api(endpoint="getparam/mute")) == "True"
+                volume = self.cdspClient.volume.main_volume()
+                volume_fader["Aux1"] = self.cdspClient.volume.volume(1)
+                volume_fader["Aux2"] = self.cdspClient.volume.volume(2)
+                volume_fader["Aux3"] = self.cdspClient.volume.volume(3)
+                volume_fader["Aux4"] = self.cdspClient.volume.volume(4)
+                mute = self.cdspClient.volume.main_mute()
+                is_fader_muted["Aux1"] = self.cdspClient.volume.mute(1)
+                is_fader_muted["Aux2"] = self.cdspClient.volume.mute(2)
+                is_fader_muted["Aux3"] = self.cdspClient.volume.mute(3)
+                is_fader_muted["Aux4"] = self.cdspClient.volume.mute(4)
+
                 source = (json.loads(await self.async_get_api(endpoint="getactiveconfigfile"))["configFileName"])
 
                 storedconfigs = json.loads(await self.async_get_api(endpoint="storedconfigs"))
@@ -110,7 +168,9 @@ class CDSPClient:
 
         return CDSPData(state=state,
                         volume=volume,
+                        volume_fader=volume_fader,               
                         mute=mute,
+                        is_fader_muted=is_fader_muted,
                         source=source,
                         source_list=source_list,
                         capturerate=capturerate)
