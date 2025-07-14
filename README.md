@@ -134,7 +134,7 @@ tap_action:
 icon: mdi:volume-mute
 ```
 
-#### media_player.fader_mute
+#### camilladsp.fader_mute
 
 Mutes / unmutes fader (Aux1, Aux2, Aux3, Aux4).  
 "data.is_fader_muted" must be either "true" or "false".
